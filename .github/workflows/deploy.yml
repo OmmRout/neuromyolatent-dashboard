@@ -1,0 +1,68 @@
+name: CI/CD Pipeline & Automated Cloud Deployment
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  validate-and-test:
+    name: Security Audit & Automated Integration Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js Runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Security Vulnerability Scan
+        run: npm audit --audit-level=high
+
+      - name: Start Server & Execute Automated Health Check
+        run: |
+          node server.js &
+          SERVER_PID=$!
+          echo "Waiting for server to initialize..."
+          sleep 4
+          
+          # Test Health Endpoint
+          curl -f http://localhost:3000/api/health || exit 1
+          
+          # Test Scenarios API
+          curl -f http://localhost:3000/api/scenarios || exit 1
+          
+          # Test Calculation Engine
+          curl -f -X POST http://localhost:3000/api/compute \
+            -H "Content-Type: application/json" \
+            -d '{"inputs":{"muscleActivity":50,"movementLevel":50,"pressureLoad":50,"signalQuality":90},"scenarioId":"baseline_rest"}' || exit 1
+            
+          echo "All integration checks passed successfully!"
+          kill $SERVER_PID
+
+  deploy-render:
+    name: Trigger Render Continuous Deployment
+    needs: validate-and-test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Render Deploy Hook (if configured)
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -n "$RENDER_DEPLOY_HOOK" ]; then
+            echo "Triggering Render deployment hook..."
+            curl -X POST "$RENDER_DEPLOY_HOOK"
+            echo "Deploy hook triggered successfully."
+          else
+            echo "RENDER_DEPLOY_HOOK_URL secret not set. Skipping webhook trigger; Render Blueprint autoDeploy will handle the build."
+          fi

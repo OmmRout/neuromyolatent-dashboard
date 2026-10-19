@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEUROMYOLATENT | Physiotherapy Dashboard Prototype</title>
+  <meta name="description" content="Non-AI visualization prototype presenting physiological and movement-related readings through an interactive 2D muscle map and real-time statistics.">
+  <link rel="icon" type="image/png" href="logo.png">
+  
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Chart.js (Vendored locally for 100% offline reliability) -->
+  <script src="vendor/chart.umd.js"></script>
+</head>
+<body>
+  <!-- Top App Bar -->
+  <header class="app-header" id="appHeader">
+    <div class="header-brand">
+      <img src="logo.png" alt="NEUROMYOLATENT Logo" class="brand-logo" id="brandLogo">
+      <div class="brand-text">
+        <h1 class="brand-title">NEUROMYOLATENT</h1>
+        <p class="brand-tagline">PREDICT BEFORE PAIN</p>
+      </div>
+    </div>
+
+    <!-- Demo Mode Badge -->
+    <div class="demo-badge-container">
+      <div class="demo-pill" id="demoPill" title="Illustrative demonstration interface. No clinical AI or private patient records.">
+        <span class="pulsing-dot"></span>
+        <span class="demo-pill-text">DEMO MODE &bull; ILLUSTRATIVE DATA</span>
+      </div>
+      <span class="confidentiality-tag">Confidentiality-Safe Showcase</span>
+    </div>
+
+    <!-- Telemetry & Session Info -->
+    <div class="header-telemetry">
+      <div class="telemetry-item">
+        <span class="telemetry-label">SESSION ID</span>
+        <span class="telemetry-value mono" id="sessionDisplay">DEMO-NML-894210</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="telemetry-label">ENGINE STATUS</span>
+        <span class="telemetry-value status-online" id="engineStatus"><span class="dot-online"></span> ACTIVE</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="telemetry-label">TIME</span>
+        <span class="telemetry-value mono" id="clockDisplay">--:--:--</span>
+      </div>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="header-actions">
+      <button class="btn btn-secondary" id="streamToggleBtn" title="Toggle Live Sensor Stream Simulation">
+        <span class="btn-icon" id="streamIcon">&#9658;</span>
+        <span id="streamBtnText">Live Stream</span>
+      </button>
+      <button class="btn btn-secondary" id="resetBtn" title="Reset all inputs to default resting baseline">
+        <span class="btn-icon">&#8634;</span> Reset
+      </button>
+      <button class="btn btn-primary" id="exportBtn" title="Generate printable session report">
+        <span class="btn-icon">&#128196;</span> Export Report
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Dashboard Grid -->
+  <div class="dashboard-wrapper">
+    <main class="dashboard-grid">
+
+      <!-- LEFT PANEL: Sliders & Scenario Presets -->
+      <aside class="panel left-panel" id="leftPanel">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <span class="panel-icon">&#9881;</span>
+            <h2 class="panel-title">Demo Controls & Inputs</h2>
+          </div>
+          <span class="panel-subtitle">Adjustable Illustrative Channels</span>
+        </div>
+
+        <!-- Sample Scenarios Selector -->
+        <div class="section-card">
+          <label for="scenarioSelect" class="input-label">
+            <span>Sample Preset Scenario</span>
+            <span class="badge-tag">Repeatable</span>
+          </label>
+          <div class="custom-select-wrapper">
+            <select id="scenarioSelect" class="form-select">
+              <option value="baseline_rest">1. Resting Baseline (Equilibrium)</option>
+              <option value="lumbar_overload">2. Asymmetric Lumbar Overload</option>
+              <option value="cervical_trapezius">3. Cervical & Upper Trapezius Strain</option>
+              <option value="quadriceps_fatigue">4. Post-Rehab Quad Fatigue</option>
+              <option value="dynamic_sprint">5. High-Velocity Dynamic Sprint</option>
+              <option value="sensor_dropout">6. Signal Degradation / Artifact Demo</option>
+            </select>
+          </div>
+          <p class="scenario-description" id="scenarioDesc">
+            Minimal resting tone across all anatomical chains. Balanced bilateral load with optimal sensor SNR.
+          </p>
+        </div>
+
+        <!-- Sliders Container -->
+        <div class="section-card sliders-card">
+          <div class="slider-header-main">
+            <h3 class="section-title">Sensor-Style Channels</h3>
+            <span class="slider-hint">Move sliders to observe live update</span>
+          </div>
+
+          <!-- Slider 1: Muscle Activity -->
+          <div class="slider-group">
+            <div class="slider-meta">
+              <label for="sliderActivity" class="slider-name">Muscle Activity Level</label>
+              <div class="slider-val-wrapper">
+                <span class="slider-number mono" id="valActivity">25</span>
+                <span class="slider-unit">% RMS</span>
+              </div>
+            </div>
+            <input type="range" id="sliderActivity" class="styled-slider" min="0" max="100" step="1" value="25">
+            <div class="slider-scale">
+              <span>0% (Rest)</span>
+              <span>50%</span>
+              <span>100% (MVC)</span>
+            </div>
+          </div>
+
+          <!-- Slider 2: Movement / Motion -->
+          <div class="slider-group">
+            <div class="slider-meta">
+              <label for="sliderMovement" class="slider-name">Movement / Motion Level</label>
+              <div class="slider-val-wrapper">
+                <span class="slider-number mono" id="valMovement">15</span>
+                <span class="slider-unit">a.u.</span>
+              </div>
+            </div>
+            <input type="range" id="sliderMovement" class="styled-slider" min="0" max="100" step="1" value="15">
+            <div class="slider-scale">
+              <span>0 (Static)</span>
+              <span>50 (Moderate)</span>
+              <span>100 (Dynamic)</span>
+            </div>
+          </div>
+
+          <!-- Slider 3: Pressure / Load -->
+          <div class="slider-group">
+            <div class="slider-meta">
+              <label for="sliderPressure" class="slider-name">Pressure / Load Level</label>
+              <div class="slider-val-wrapper">
+                <span class="slider-number mono" id="valPressure">20</span>
+                <span class="slider-unit">N/cm&sup2;</span>
+              </div>
+            </div>
+            <input type="range" id="sliderPressure" class="styled-slider" min="0" max="100" step="1" value="20">
+            <div class="slider-scale">
+              <span>0 (Unloaded)</span>
+              <span>50</span>
+              <span>100 (Max Load)</span>
+            </div>
+          </div>
+
+          <!-- Slider 4: Signal Quality / SNR -->
+          <div class="slider-group">
+            <div class="slider-meta">
+              <div class="slider-label-with-toggle">
+                <label for="sliderSignal" class="slider-name">Signal Quality (SNR)</label>
+                <button type="button" class="btn-micro" id="toggleDegradedBtn" title="Toggle between optimal signal and dropped electrode">Drop Signal</button>
+              </div>
+              <div class="slider-val-wrapper">
+                <span class="slider-number mono" id="valSignal">95</span>
+                <span class="slider-unit">%</span>
+              </div>
+            </div>
+            <input type="range" id="sliderSignal" class="styled-slider signal-slider" min="0" max="100" step="1" value="95">
+            <div class="slider-scale">
+              <span class="text-danger">&lt;35% (No Data)</span>
+              <span>70%</span>
+              <span class="text-success">100% (Optimal)</span>
+            </div>
+          </div>
+
+          <!-- Slider Control Actions -->
+          <div class="slider-actions">
+            <button class="btn btn-sm btn-ghost" id="randomizeBtn" title="Randomise inputs within realistic ranges">
+              &#127922; Randomise Sample
+            </button>
+            <button class="btn btn-sm btn-ghost" id="defaultRestBtn" title="Reset to low resting equilibrium">
+              &#9749; Resting Tone
+            </button>
+          </div>
+        </div>
+
+        <!-- Documentation Card -->
+        <div class="info-card">
+          <div class="info-icon">&#9432;</div>
+          <div class="info-text">
+            <strong>Transparent Display Rules:</strong>
+            <p>Scores are illustrative combinations of normalized inputs. Values &ge;70 appear <span class="tag-elevated">Elevated</span>, 40–69 <span class="tag-moderate">Moderate</span>, &lt;40 <span class="tag-low">Low</span>, and &lt;35% SNR shows <span class="tag-nodata">No Data</span>.</p>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CENTRE PANEL: 2D Interactive Muscle Map -->
+      <section class="panel center-panel" id="centerPanel">
+        <div class="panel-header map-panel-header">
+          <div>
+            <div class="panel-title-wrapper">
+              <span class="panel-icon">&#9903;</span>
+              <h2 class="panel-title">2D Muscle Status Map</h2>
+            </div>
+            <span class="panel-subtitle">Select an anatomical region to inspect real-time metrics</span>
+          </div>
+
+          <!-- View Switcher -->
+          <div class="view-switcher" role="tablist">
+            <button class="view-btn active" id="viewBothBtn" data-view="both">Dual View</button>
+            <button class="view-btn" id="viewAnteriorBtn" data-view="anterior">Anterior (Front)</button>
+            <button class="view-btn" id="viewPosteriorBtn" data-view="posterior">Posterior (Back)</button>
+          </div>
+        </div>
+
+        <!-- Muscle Map Container -->
+        <div class="map-viewport" id="mapViewport">
+          
+          <!-- Anterior SVG View -->
+          <div class="anatomical-figure-wrapper" id="anteriorWrapper">
+            <div class="figure-label">ANTERIOR (FRONT)</div>
+            <div class="svg-container">
+              <svg id="svgAnterior" viewBox="0 0 320 600" class="muscle-svg" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <!-- Glow filter for selected muscle -->
+                  <filter id="neonGlowAnterior" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#00f2fe" flood-opacity="0.8"/>
+                  </filter>
+                  <!-- Pattern for No Data -->
+                  <pattern id="hatchPatternAnterior" width="10" height="10" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="0" x2="0" y2="10" stroke="#475569" stroke-width="2.5" />
+                  </pattern>
+                </defs>
+
+                <!-- Body Silhouette Backdrop -->
+                <g class="body-silhouette">
+                  <!-- Head & Neck -->
+                  <ellipse cx="160" cy="45" rx="28" ry="34" class="silhouette-base" />
+                  <!-- Torso & Pelvis -->
+                  <path d="M128,82 C105,95 90,120 85,150 L82,230 C82,255 105,270 125,275 L125,410 C125,425 120,450 120,535 L120,555 C120,562 128,565 140,565 L148,565 C155,565 158,555 158,540 L158,310 L162,310 L162,540 C162,555 165,565 172,565 L180,565 C192,565 200,562 200,555 L200,535 C200,450 195,425 195,410 L195,275 C215,270 238,255 238,230 L235,150 C230,120 215,95 192,82 Z" class="silhouette-base" />
+                  <!-- Arms -->
+                  <path d="M85,150 L68,235 C65,255 60,285 58,320 C58,330 65,335 72,330 L80,270 L82,230 Z" class="silhouette-base" />
+                  <path d="M235,150 L252,235 C255,255 260,285 262,320 C262,330 255,335 248,330 L240,270 L238,230 Z" class="silhouette-base" />
+                </g>
+
+                <!-- Interactive Anatomical Muscle Groups (Anterior) -->
+                <g class="interactive-muscles">
+                  <!-- Cervical / Neck -->
+                  <path id="neck_anterior" class="muscle-region" data-region="neck_anterior"
+                    d="M148,78 C144,92 144,106 153,114 L160,117 L167,114 C176,106 176,92 172,78 Z" />
+
+                  <!-- Anterior Deltoid Left (Viewer's Left) -->
+                  <path id="deltoid_anterior_l" class="muscle-region" data-region="deltoid_anterior_l"
+                    d="M128,86 C112,96 100,114 96,134 C94,142 96,150 102,154 C108,154 116,142 122,128 C126,116 128,102 128,86 Z" />
+
+                  <!-- Anterior Deltoid Right (Viewer's Right) -->
+                  <path id="deltoid_anterior_r" class="muscle-region" data-region="deltoid_anterior_r"
+                    d="M192,86 C208,96 220,114 224,134 C226,142 224,150 218,154 C212,154 204,142 198,128 C194,116 192,102 192,86 Z" />
+
+                  <!-- Pectoralis Major -->
+                  <path id="chest_pectoral" class="muscle-region" data-region="chest_pectoral"
+                    d="M130,94 C136,112 142,126 158,128 L160,128 L162,128 C178,126 184,112 190,94 C184,140 174,158 160,158 C146,158 136,140 130,94 Z" />
+
+                  <!-- Biceps Left -->
+                  <path id="biceps_l" class="muscle-region" data-region="biceps_l"
+                    d="M96,155 C90,175 88,198 92,216 C96,218 104,216 108,206 C112,190 114,172 108,156 Z" />
+
+                  <!-- Biceps Right -->
+                  <path id="biceps_r" class="muscle-region" data-region="biceps_r"
+                    d="M224,155 C230,175 232,198 228,216 C224,218 216,216 212,206 C208,190 206,172 212,156 Z" />
+
+                  <!-- Rectus Abdominis / Core -->
+                  <path id="abdominals" class="muscle-region" data-region="abdominals"
+                    d="M142,165 C140,195 138,225 138,255 C146,260 154,262 160,262 C166,262 174,260 182,255 C182,225 180,195 178,165 C172,162 166,160 160,160 C154,160 148,162 142,165 Z" />
+
+                  <!-- Quadriceps Left -->
+                  <path id="quadriceps_l" class="muscle-region" data-region="quadriceps_l"
+                    d="M128,280 C124,315 122,355 125,395 C132,404 140,406 148,404 C154,395 156,350 156,285 C146,280 136,279 128,280 Z" />
+
+                  <!-- Quadriceps Right -->
+                  <path id="quadriceps_r" class="muscle-region" data-region="quadriceps_r"
+                    d="M192,280 C196,315 198,355 195,395 C188,404 180,406 172,404 C166,395 164,350 164,285 C174,280 184,279 192,280 Z" />
+
+                  <!-- Tibialis Anterior Left -->
+                  <path id="tibialis_l" class="muscle-region" data-region="tibialis_l"
+                    d="M127,430 C124,460 124,495 128,525 C134,530 142,528 146,520 C148,495 146,460 145,430 C138,426 132,427 127,430 Z" />
+
+                  <!-- Tibialis Anterior Right -->
+                  <path id="tibialis_r" class="muscle-region" data-region="tibialis_r"
+                    d="M193,430 C196,460 196,495 192,525 C186,530 178,528 174,520 C172,495 174,460 175,430 C182,426 188,427 193,430 Z" />
+                </g>
+
+                <!-- Anatomical Skeletal Markers -->
+                <circle cx="160" cy="45" r="3" class="marker-dot" />
+                <line x1="160" y1="80" x2="160" y2="270" class="midline-guide" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Posterior SVG View -->
+          <div class="anatomical-figure-wrapper" id="posteriorWrapper">
+            <div class="figure-label">POSTERIOR (BACK)</div>
+            <div class="svg-container">
+              <svg id="svgPosterior" viewBox="0 0 320 600" class="muscle-svg" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <filter id="neonGlowPosterior" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#00f2fe" flood-opacity="0.8"/>
+                  </filter>
+                  <pattern id="hatchPatternPosterior" width="10" height="10" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="0" x2="0" y2="10" stroke="#475569" stroke-width="2.5" />
+                  </pattern>
+                </defs>
+
+                <!-- Body Silhouette Backdrop -->
+                <g class="body-silhouette">
+                  <ellipse cx="160" cy="45" rx="28" ry="34" class="silhouette-base" />
+                  <path d="M128,82 C105,95 90,120 85,150 L82,230 C82,255 105,270 125,275 L125,410 C125,425 120,450 120,535 L120,555 C120,562 128,565 140,565 L148,565 C155,565 158,555 158,540 L158,310 L162,310 L162,540 C162,555 165,565 172,565 L180,565 C192,565 200,562 200,555 L200,535 C200,450 195,425 195,410 L195,275 C215,270 238,255 238,230 L235,150 C230,120 215,95 192,82 Z" class="silhouette-base" />
+                  <path d="M85,150 L68,235 C65,255 60,285 58,320 C58,330 65,335 72,330 L80,270 L82,230 Z" class="silhouette-base" />
+                  <path d="M235,150 L252,235 C255,255 260,285 262,320 C262,330 255,335 248,330 L240,270 L238,230 Z" class="silhouette-base" />
+                </g>
+
+                <!-- Interactive Anatomical Muscle Groups (Posterior) -->
+                <g class="interactive-muscles">
+                  <!-- Upper Trapezius / Neck -->
+                  <path id="trapezius_upper" class="muscle-region" data-region="trapezius_upper"
+                    d="M160,78 L134,92 C126,104 124,116 118,124 L142,126 L160,146 L178,126 L202,124 C196,116 194,104 186,92 Z" />
+
+                  <!-- Posterior Deltoid Left -->
+                  <path id="deltoid_posterior_l" class="muscle-region" data-region="deltoid_posterior_l"
+                    d="M116,124 C104,130 96,142 94,156 C96,164 104,166 110,160 C116,150 120,138 122,126 Z" />
+
+                  <!-- Posterior Deltoid Right -->
+                  <path id="deltoid_posterior_r" class="muscle-region" data-region="deltoid_posterior_r"
+                    d="M204,124 C216,130 224,142 226,156 C224,164 216,166 210,160 C204,150 200,138 198,126 Z" />
+
+                  <!-- Triceps Left -->
+                  <path id="triceps_l" class="muscle-region" data-region="triceps_l"
+                    d="M94,162 C88,180 86,204 90,222 C96,224 104,222 108,212 C110,195 110,178 106,162 Z" />
+
+                  <!-- Triceps Right -->
+                  <path id="triceps_r" class="muscle-region" data-region="triceps_r"
+                    d="M226,162 C232,180 234,204 230,222 C224,224 216,222 212,212 C210,195 210,178 214,162 Z" />
+
+                  <!-- Latissimus Dorsi -->
+                  <path id="latissimus" class="muscle-region" data-region="latissimus"
+                    d="M136,132 C126,155 124,185 125,215 C135,220 148,222 160,222 C172,222 185,220 195,215 C196,185 194,155 184,132 L160,154 Z" />
+
+                  <!-- Lumbar Erector Spinae (Lower Back) -->
+                  <path id="lumbar_erectors" class="muscle-region" data-region="lumbar_erectors"
+                    d="M142,218 C140,236 138,254 138,272 C146,275 154,277 160,277 C166,277 174,275 182,272 C182,254 180,236 178,218 C172,221 166,223 160,223 C154,223 148,221 142,218 Z" />
+
+                  <!-- Gluteus Maximus Left -->
+                  <path id="gluteus_l" class="muscle-region" data-region="gluteus_l"
+                    d="M126,276 C122,305 124,330 134,345 C144,348 154,345 158,335 C158,305 157,282 155,278 Z" />
+
+                  <!-- Gluteus Maximus Right -->
+                  <path id="gluteus_r" class="muscle-region" data-region="gluteus_r"
+                    d="M194,276 C198,305 196,330 186,345 C176,348 166,345 162,335 C162,305 163,282 165,278 Z" />
+
+                  <!-- Hamstrings Left -->
+                  <path id="hamstrings_l" class="muscle-region" data-region="hamstrings_l"
+                    d="M128,352 C124,380 124,405 128,425 C136,428 144,427 152,420 C154,395 154,370 154,350 Z" />
+
+                  <!-- Hamstrings Right -->
+                  <path id="hamstrings_r" class="muscle-region" data-region="hamstrings_r"
+                    d="M192,352 C196,380 196,405 192,425 C184,428 176,427 168,420 C166,395 166,370 166,350 Z" />
+
+                  <!-- Gastrocnemius / Calves Left -->
+                  <path id="gastrocnemius_l" class="muscle-region" data-region="gastrocnemius_l"
+                    d="M126,438 C122,465 122,495 128,525 C135,530 144,528 148,518 C150,490 148,465 146,438 Z" />
+
+                  <!-- Gastrocnemius / Calves Right -->
+                  <path id="gastrocnemius_r" class="muscle-region" data-region="gastrocnemius_r"
+                    d="M194,438 C198,465 198,495 192,525 C185,530 176,528 172,518 C170,490 172,465 174,438 Z" />
+                </g>
+
+                <!-- Midline spine guide -->
+                <line x1="160" y1="80" x2="160" y2="280" class="midline-guide" />
+              </svg>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Floating Tooltip for SVG -->
+        <div id="mapTooltip" class="map-tooltip">
+          <div class="tooltip-title" id="tooltipTitle">Muscle Name</div>
+          <div class="tooltip-body">
+            <span class="tooltip-score" id="tooltipScore">Score: 45</span>
+            <span class="tooltip-badge" id="tooltipBadge">Low</span>
+          </div>
+        </div>
+
+        <!-- Legend Bar -->
+        <div class="map-legend">
+          <div class="legend-item" data-category="Low">
+            <span class="legend-color-box box-low"></span>
+            <div class="legend-meta">
+              <span class="legend-name">Low (&lt;40)</span>
+              <span class="legend-count" id="countLow">0 regions</span>
+            </div>
+          </div>
+          <div class="legend-item" data-category="Moderate">
+            <span class="legend-color-box box-moderate"></span>
+            <div class="legend-meta">
+              <span class="legend-name">Moderate (40–69)</span>
+              <span class="legend-count" id="countModerate">0 regions</span>
+            </div>
+          </div>
+          <div class="legend-item" data-category="Elevated">
+            <span class="legend-color-box box-elevated"></span>
+            <div class="legend-meta">
+              <span class="legend-name">Elevated (&ge;70)</span>
+              <span class="legend-count" id="countElevated">0 regions</span>
+            </div>
+          </div>
+          <div class="legend-item" data-category="No Data">
+            <span class="legend-color-box box-nodata"></span>
+            <div class="legend-meta">
+              <span class="legend-name">No Data (&lt;35% SNR)</span>
+              <span class="legend-count" id="countNoData">0 regions</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT PANEL: Selected Region Details & Key Summary Metrics -->
+      <aside class="panel right-panel" id="rightPanel">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <span class="panel-icon">&#9879;</span>
+            <h2 class="panel-title">Regional Analytics</h2>
+          </div>
+          <span class="panel-subtitle">Selected Target Deep Dive</span>
+        </div>
+
+        <!-- Selected Region Deep Dive Card -->
+        <div class="section-card selected-region-card" id="selectedRegionCard">
+          <div class="card-top-row">
+            <div>
+              <span class="sub-tag" id="detailRegionView">POSTERIOR CHAIN</span>
+              <h3 class="region-detail-title" id="detailRegionName">Lumbar Erector Spinae</h3>
+            </div>
+            <div class="status-pill status-elevated" id="detailStatusPill">Elevated</div>
+          </div>
+
+          <!-- Circular Metric Meter -->
+          <div class="radial-score-container">
+            <div class="radial-gauge-wrapper">
+              <svg class="radial-svg" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" class="radial-bg" />
+                <circle cx="60" cy="60" r="50" class="radial-progress" id="radialProgressCircle" />
+              </svg>
+              <div class="radial-center-text">
+                <span class="radial-number mono" id="detailScoreNumber">78</span>
+                <span class="radial-unit">Composite</span>
+              </div>
+            </div>
+            <div class="radial-stats-list">
+              <div class="sub-stat-row">
+                <span class="sub-stat-label">Activity Proxy:</span>
+                <span class="sub-stat-value mono" id="detailActivityVal">78 %</span>
+              </div>
+              <div class="sub-stat-row">
+                <span class="sub-stat-label">Kinetic Motion:</span>
+                <span class="sub-stat-value mono" id="detailMovementVal">65 a.u.</span>
+              </div>
+              <div class="sub-stat-row">
+                <span class="sub-stat-label">Compressive Load:</span>
+                <span class="sub-stat-value mono" id="detailPressureVal">88 N/cm&sup2;</span>
+              </div>
+              <div class="sub-stat-row">
+                <span class="sub-stat-label">Electrode SNR:</span>
+                <span class="sub-stat-value mono text-cyan" id="detailSignalVal">95 %</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Plain-Language Interpretation -->
+          <div class="interpretation-box">
+            <div class="interpretation-label">ILLUSTRATIVE OBSERVATION</div>
+            <p class="interpretation-text" id="detailExplanation">
+              Deep lumbar stabilizers subjected to heavy compressive and shear loading. Region exhibits high simulated motor-unit recruitment relative to baseline.
+            </p>
+          </div>
+
+          <!-- Non-Clinical Notice -->
+          <div class="card-disclaimer">
+            <span class="disclaimer-icon">&#9888;</span>
+            <span>Illustrative calculation only. Not medical diagnosis.</span>
+          </div>
+        </div>
+
+        <!-- Global Summary Statistics Grid -->
+        <div class="section-card">
+          <h3 class="section-title">Session Distribution Metrics</h3>
+          <div class="stats-mini-grid">
+            <div class="mini-stat-card">
+              <span class="mini-stat-label">MEAN LOAD INDEX</span>
+              <span class="mini-stat-val mono" id="statMean">--</span>
+              <span class="mini-stat-sub">Across 22 groups</span>
+            </div>
+            <div class="mini-stat-card">
+              <span class="mini-stat-label">PEAK REGION</span>
+              <span class="mini-stat-val text-warning" id="statPeak">--</span>
+              <span class="mini-stat-sub" id="statPeakScore">Score: --</span>
+            </div>
+            <div class="mini-stat-card">
+              <span class="mini-stat-label">MONITORED CHANNELS</span>
+              <span class="mini-stat-val mono text-cyan" id="statMonitored">22 / 22</span>
+              <span class="mini-stat-sub">Active telemetry</span>
+            </div>
+            <div class="mini-stat-card">
+              <span class="mini-stat-label">MEAN SIGNAL QUALITY</span>
+              <span class="mini-stat-val mono" id="statQuality">95%</span>
+              <span class="mini-stat-sub">Clean acquisition</span>
+            </div>
+          </div>
+
+          <!-- Category Breakdown Bar -->
+          <div class="distribution-bar-wrapper">
+            <div class="dist-header">
+              <span class="dist-label">Category Ratio</span>
+              <span class="dist-total" id="distTotalLabel">22 Regions Total</span>
+            </div>
+            <div class="stacked-bar" id="stackedBar">
+              <div class="bar-seg seg-low" id="segLow" style="width: 40%;" title="Low"></div>
+              <div class="bar-seg seg-moderate" id="segModerate" style="width: 35%;" title="Moderate"></div>
+              <div class="bar-seg seg-elevated" id="segElevated" style="width: 25%;" title="Elevated"></div>
+              <div class="bar-seg seg-nodata" id="segNoData" style="width: 0%;" title="No Data"></div>
+            </div>
+            <div class="dist-legend-labels">
+              <span class="label-low"><span class="chip chip-low"></span> Low: <strong id="lblPctLow">40%</strong></span>
+              <span class="label-mod"><span class="chip chip-mod"></span> Mod: <strong id="lblPctMod">35%</strong></span>
+              <span class="label-ele"><span class="chip chip-ele"></span> Elev: <strong id="lblPctEle">25%</strong></span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- BOTTOM PANEL: Comparative Charts & Trend Analysis -->
+      <section class="panel bottom-panel" id="bottomPanel">
+        <div class="panel-header bottom-panel-header">
+          <div class="panel-title-wrapper">
+            <span class="panel-icon">&#128200;</span>
+            <h2 class="panel-title">Comparative Analysis & Real-Time Trend</h2>
+          </div>
+          <span class="panel-subtitle">Multi-channel cross-sectional comparison and dynamic trajectory</span>
+        </div>
+
+        <div class="bottom-charts-grid">
+          
+          <!-- Chart 1: Regional Comparison Bar Chart -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Key Region Multi-Channel Comparison</h3>
+              <span class="chart-tag">Current Readings</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="barChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 2: Dynamic Live Trend Line Chart -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Real-Time Trajectory: <span id="trendTargetName">Selected Muscle</span></h3>
+              <span class="chart-tag live-tag"><span class="live-blink"></span> Dynamic Stream</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="trendChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 3: Comparative Scenario Delta Matrix -->
+          <div class="chart-card comparison-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Scenario Delta: Current vs Baseline</h3>
+              <span class="chart-tag">Delta Analysis</span>
+            </div>
+            <div class="comparison-body" id="comparisonBody">
+              <!-- Dynamically populated comparison rows -->
+              <div class="delta-row">
+                <span class="delta-name">Lumbar Erector Spinae</span>
+                <span class="delta-baseline mono">22 &rarr; 78</span>
+                <span class="delta-badge badge-pos">+56</span>
+              </div>
+              <div class="delta-row">
+                <span class="delta-name">Upper Trapezius</span>
+                <span class="delta-baseline mono">24 &rarr; 52</span>
+                <span class="delta-badge badge-pos">+28</span>
+              </div>
+              <div class="delta-row">
+                <span class="delta-name">Quadriceps Femoris</span>
+                <span class="delta-baseline mono">20 &rarr; 38</span>
+                <span class="delta-badge badge-pos">+18</span>
+              </div>
+              <div class="delta-row">
+                <span class="delta-name">Biceps Brachii</span>
+                <span class="delta-baseline mono">18 &rarr; 22</span>
+                <span class="delta-badge badge-neu">+4</span>
+              </div>
+              <div class="delta-row">
+                <span class="delta-name">Hamstrings</span>
+                <span class="delta-baseline mono">19 &rarr; 46</span>
+                <span class="delta-badge badge-pos">+27</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Confidentiality & Disclaimer Sticky Footer -->
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span class="footer-logo-txt">NEUROMYOLATENT &copy; 2026</span>
+        <span class="footer-divider">&bull;</span>
+        <span class="footer-text">PREDICT BEFORE PAIN &bull; Physiotherapy Visualization Interface Concept</span>
+      </div>
+      <div class="footer-right">
+        <span class="confidentiality-notice">
+          <strong>CONFIDENTIALITY BOUNDARY:</strong> Demonstrates visualization layer only. Proprietary AI models, raw patient records, and private diagnostic services are excluded.
+        </span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- EXPORT SESSION SUMMARY MODAL -->
+  <div class="modal-backdrop" id="exportModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-brand">
+          <img src="logo.png" alt="NEUROMYOLATENT Logo" class="modal-logo">
+          <div>
+            <h2 class="modal-title">NEUROMYOLATENT</h2>
+            <p class="modal-subtitle">DEMO SESSION SUMMARY REPORT &bull; ILLUSTRATIVE DATA</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="modalCloseBtn">&times;</button>
+      </div>
+
+      <div class="modal-body printable-area" id="printableReport">
+        <!-- Report Header Bar -->
+        <div class="report-banner">
+          <div>
+            <div class="report-meta-row"><strong>Session ID:</strong> <span id="reportSessionId" class="mono">DEMO-NML-894210</span></div>
+            <div class="report-meta-row"><strong>Timestamp:</strong> <span id="reportTimestamp" class="mono">2026-10-19T10:30:00Z</span></div>
+            <div class="report-meta-row"><strong>Scenario:</strong> <span id="reportScenario">Asymmetric Lumbar Overload</span></div>
+          </div>
+          <div class="report-badge">
+            DEMO MODE &bull; ILLUSTRATIVE DATA<br>
+            <small>NON-DIAGNOSTIC BENCHMARK</small>
+          </div>
+        </div>
+
+        <!-- Channel Parameters Summary -->
+        <div class="report-section">
+          <h4 class="report-heading">Simulated Input Channel Readings</h4>
+          <div class="report-grid-3">
+            <div class="report-box">
+              <span class="box-lbl">Muscle Activity Level</span>
+              <span class="box-val mono" id="repActVal">78 % RMS</span>
+            </div>
+            <div class="report-box">
+              <span class="box-lbl">Movement / Motion Level</span>
+              <span class="box-val mono" id="repMovVal">65 a.u.</span>
+            </div>
+            <div class="report-box">
+              <span class="box-lbl">Pressure / Load Level</span>
+              <span class="box-val mono" id="repPrsVal">88 N/cm&sup2;</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Global Distribution Metrics -->
+        <div class="report-section">
+          <h4 class="report-heading">Statistical Aggregate Overview</h4>
+          <div class="report-grid-4">
+            <div class="report-box">
+              <span class="box-lbl">Mean Load Index</span>
+              <span class="box-val mono" id="repMeanVal">54</span>
+            </div>
+            <div class="report-box">
+              <span class="box-lbl">Peak Strain Zone</span>
+              <span class="box-val mono" id="repPeakVal">Lumbar Erector</span>
+            </div>
+            <div class="report-box">
+              <span class="box-lbl">Active Groups</span>
+              <span class="box-val mono" id="repActiveVal">22 / 22</span>
+            </div>
+            <div class="report-box">
+              <span class="box-lbl">Signal Quality</span>
+              <span class="box-val mono" id="repSnrVal">95%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table of Monitored Regions -->
+        <div class="report-section">
+          <h4 class="report-heading">Monitored Anatomical Chains</h4>
+          <div class="report-table-scroll">
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Region Name</th>
+                  <th>Aspect</th>
+                  <th>Illustrative Score</th>
+                  <th>Display Category</th>
+                  <th>Biomechanical Rationale</th>
+                </tr>
+              </thead>
+              <tbody id="reportTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Legal and Confidentiality Signoff -->
+        <div class="report-disclaimer-box">
+          <p><strong>NOTICE:</strong> This demonstration summary was generated by the NEUROMYOLATENT Basic Physiotherapy Dashboard Prototype. Readings and status levels are synthetic and calculated according to transparent illustrative demonstration rules. They do not constitute a medical diagnosis, clinical evaluation, or validated injury forecast.</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modalPrintBtn">
+          <span>&#128424;</span> Print / Save PDF
+        </button>
+        <button class="btn btn-primary" id="modalDoneBtn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Script -->
+  <script src="app.js"></script>
+</body>
+</html>

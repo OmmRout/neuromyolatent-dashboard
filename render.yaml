@@ -1,0 +1,16 @@
+# render.yaml - Render Blueprint Specification (Infrastructure as Code)
+services:
+  - type: web
+    name: neuromyolatent-dashboard
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
